@@ -550,7 +550,7 @@ private struct ChapterListRowView: View {
             .listRowBackground(rowBackground)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(AccessibilitySupport.spokenChapterTitle(for: chapter))
-            .accessibilityIdentifier(chapter.id)
+            .accessibilityIdentifier(chapter.accessibilitySuffix)
             .accessibilitySortPriority(10)
             .modifier(AccessibilityProgressModifier(progressText: accessibilityProgressText))
     }

@@ -712,6 +712,7 @@ final class PsalmPlayerViewModel: ObservableObject {
             if let first = visiblePsalms.first {
                 selectedPsalm = first
             }
+            return
         }
     }
 
