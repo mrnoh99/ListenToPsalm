@@ -279,11 +279,12 @@ struct Psalm: Identifiable, Hashable, Sendable {
 
     var shortTitle: String { "시편 \(number)편" }
 
-    var resourceName: String { "시편 \(String(format: "%03d", number))편" }
+    /// Bundled audio stem, e.g. `시편_001장` (matches `AudioFiles/시편_001장.mp3`).
+    var resourceName: String { "시편_\(String(format: "%03d", number))장" }
 
     var resourceSubdirectory: String { "AudioFiles" }
 
-    var resourceDisplayPath: String { "\(resourceSubdirectory)/\(resourceName).m4a" }
+    var resourceDisplayPath: String { "\(resourceSubdirectory)/\(resourceName).mp3" }
 
     var accessibilitySuffix: String { "psalm-\(number)" }
 }

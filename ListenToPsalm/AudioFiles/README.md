@@ -1,7 +1,7 @@
 # AudioFiles
 
-Place bundled Psalm `.m4a` files here, for example:
+Bundled Psalm audio (150 files), for example:
 
-`시편 001편.m4a` … `시편 150편.m4a`
+`시편_001장.mp3` … `시편_150장.mp3`
 
-Naming must match `Psalm.resourceName` in `Psalm.swift`.
+Naming must match `Psalm.resourceName` in `Psalm.swift` (underscore + `장` suffix).
