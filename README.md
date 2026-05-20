@@ -1,37 +1,46 @@
 # ListenToPsalm
 
-**시편듣기** — 가톨릭 시편(1–150편) 오디오 듣기 iOS 앱 (개발 중)
+**시편듣기** — 가톨릭 시편(1–150편) 오디오 듣기 iOS 앱
 
 [ListenToGospel](https://github.com/mrnoh99/ListenToGospel)과 동일한 재생·접근성·수면 타이머·Siri/단축어 패턴을 사용합니다.
 
-## 탐색 구조 (계획)
+## GitHub Pages
 
-```
-시편듣기
-├── 전체 (1–150편)
-├── 권별 보기
-│   ├── 제1권 (1–41편)
-│   ├── 제2권 (42–72편)
-│   ├── 제3권 (73–89편)
-│   ├── 제4권 (90–106편)
-│   └── 제5권 (107–150편)
-├── 장르별
-│   ├── 찬양시
-│   ├── 탄원시
-│   ├── 감사시
-│   ├── 순례시 (120–134)
-│   └── 지혜시
-├── 전례별 (가톨릭)
-│   ├── 7대 참회시편
-│   ├── 할렐 시편
-│   └── 메시아 시편
-└── 즐겨찾기
-```
+| 용도 | URL |
+|------|-----|
+| Marketing | https://mrnoh99.github.io/ListenToPsalm/ |
+| Support | https://mrnoh99.github.io/ListenToPsalm/support.html |
+| Privacy | https://mrnoh99.github.io/ListenToPsalm/privacy.html |
 
-## 상태
+`docs/` 푸시 후 [Settings → Pages](https://github.com/mrnoh99/ListenToPsalm/settings/pages)에서 **GitHub Actions** 또는 **`/docs`** 브랜치 게시를 설정하세요.
 
-초기 저장소입니다. Xcode 프로젝트·오디오 자산·GitHub Pages는 추후 추가 예정입니다.
+## Xcode
 
-## 라이선스 · 오디오
+- 프로젝트: `ListenToPsalm.xcodeproj`
+- 소스: `ListenToPsalm/`
+- 오디오: `ListenToPsalm/AudioFiles/` (`시편 001편.m4a` … `시편 150편.m4a`)
+- 번들 ID: `njs.ListenToPsalm`
+- 표시 이름: 시편듣기
 
-시편 오디오는 시각장애인용 공익 음성 자료(예: 성동구 장애인종합복지관) 등 출처에 따릅니다.
+## 탐색 (2×3 허브)
+
+- **전체** (1–150편)
+- **권별** — 제1권(1–41) … 제5권(107–150)
+- **장르** — 찬양·탄원·감사·순례(120–134)·지혜
+- **전례** — 7대 참회시편·할렐·메시아
+- **즐겨찾기**
+
+## 시리 예시
+
+- 「시편듣기에서 시편 23편 재생」
+- 「시편듣기에서 이어서 재생」
+- 「시편듣기 수면 타이머 30분」
+- 「시편듣기 정지」
+
+## 오디오
+
+`AudioFiles/`에 시편 `.m4a` 파일을 추가한 뒤 Xcode에서 빌드하세요. 파일명은 `Psalm.swift`의 `resourceName`과 일치해야 합니다.
+
+## 관련 앱
+
+- [ListenToGospel (복음서듣기)](https://github.com/mrnoh99/ListenToGospel)
