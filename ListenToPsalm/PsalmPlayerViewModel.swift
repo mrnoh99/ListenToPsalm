@@ -131,11 +131,14 @@ final class PsalmPlayerViewModel: ObservableObject {
         case .all:
             return "전체 1–150편"
         case .byBook:
-            return "\(selectedBook.title) (\(selectedBook.subtitle))"
+            return "\(selectedBook.title) · \(selectedBook.theme)"
         case .byGenre:
+            if let subtitle = selectedGenre.subtitle {
+                return "\(selectedGenre.title) · \(subtitle)"
+            }
             return selectedGenre.title
         case .byLiturgy:
-            return selectedLiturgy.title
+            return "\(selectedLiturgy.title) · \(selectedLiturgy.usage)"
         case .favorites:
             return favoriteNumbers.isEmpty ? "즐겨찾기" : "즐겨찾기 \(favoriteNumbers.count)편"
         }

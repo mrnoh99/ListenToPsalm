@@ -221,7 +221,7 @@ struct ContentView: View {
         }
         .confirmationDialog("권별 보기", isPresented: $isBookPickerPresented, titleVisibility: .visible) {
             ForEach(PsalmBook.allCases) { book in
-                Button("\(book.title) (\(book.subtitle))") {
+                Button("\(book.pickerLabel) — \(book.theme)") {
                     player.selectedBook = book
                     player.selectBrowseMode(.byBook)
                 }
@@ -230,16 +230,16 @@ struct ContentView: View {
         }
         .confirmationDialog("장르별", isPresented: $isGenrePickerPresented, titleVisibility: .visible) {
             ForEach(PsalmGenre.allCases) { genre in
-                Button(genre.title) {
+                Button(genre.pickerLabel) {
                     player.selectedGenre = genre
                     player.selectBrowseMode(.byGenre)
                 }
             }
             Button("취소", role: .cancel) {}
         }
-        .confirmationDialog("전례별", isPresented: $isLiturgyPickerPresented, titleVisibility: .visible) {
+        .confirmationDialog("전례별 (가톨릭)", isPresented: $isLiturgyPickerPresented, titleVisibility: .visible) {
             ForEach(PsalmLiturgy.allCases) { liturgy in
-                Button(liturgy.title) {
+                Button(liturgy.pickerLabel) {
                     player.selectedLiturgy = liturgy
                     player.selectBrowseMode(.byLiturgy)
                 }
@@ -382,7 +382,7 @@ struct ContentView: View {
     private var chapterList: some View {
         ScrollViewReader { proxy in
             ChapterListScrollView(
-                listID: player.browseMode.rawValue + "-\(player.selectedBook.rawValue)",
+                listID: "\(player.browseMode.rawValue)-\(player.selectedBook.rawValue)-\(player.selectedGenre.rawValue)-\(player.selectedLiturgy.rawValue)",
                 psalms: player.visiblePsalms,
                 player: player,
                 proxy: proxy,
