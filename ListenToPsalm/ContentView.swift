@@ -277,14 +277,14 @@ struct ContentView: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Text(mode.shortTitle)
-                    .font(AppControlTypography.prominentLabelFont)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
                 if mode == .favorites {
                     Image(systemName: "heart.fill")
                         .font(.caption)
                 }
+                Text(mode.shortTitle)
+                    .font(AppControlTypography.prominentLabelFont)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .frame(maxWidth: .infinity, minHeight: controlBarHeight)
             .foregroundStyle(player.browseMode == mode ? .white : .primary)
