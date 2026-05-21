@@ -315,6 +315,9 @@ struct ContentView: View {
         PsalmBrowseGlassBar(
             barHeight: controlBarHeight,
             contextTitle: player.browseContextTitle,
+            onContextTitleTap: {
+                player.showPlayingBrowseContext()
+            },
             onSleepTimerTap: {
                 player.recordBrowseInteractionWhilePlaying()
                 isSleepTimerPickerPresented = true

@@ -45,6 +45,13 @@ final class PsalmPlayerViewModel: ObservableObject {
         }
     }
 
+    struct PlayingBrowseContext: Equatable {
+        var browseMode: BrowseMode
+        var book: PsalmBook
+        var genre: PsalmGenre
+        var liturgy: PsalmLiturgy
+    }
+
     @Published var browseMode: BrowseMode = .all {
         didSet { applyBrowseModeChange(from: oldValue) }
     }
@@ -75,6 +82,7 @@ final class PsalmPlayerViewModel: ObservableObject {
     @Published private(set) var sleepTimerStartDate: Date?
     @Published private(set) var sleepTimerEndDate: Date?
     @Published private(set) var currentPlayingPsalm: Psalm?
+    @Published private(set) var playingBrowseContext: PlayingBrowseContext?
     @Published private(set) var scrollRequestID = UUID()
     @Published private(set) var missingResourceNames: [String] = []
     @Published private(set) var playbackMessage: String?
@@ -254,8 +262,27 @@ final class PsalmPlayerViewModel: ObservableObject {
         cancelNavigationSnapBack()
         resumeBookmark = nil
         launchResumeOffer = nil
+        playingBrowseContext = PlayingBrowseContext(
+            browseMode: browseMode,
+            book: selectedBook,
+            genre: selectedGenre,
+            liturgy: selectedLiturgy
+        )
         selectedPsalm = psalm
         playFromSelection()
+    }
+
+    func showPlayingBrowseContext() {
+        guard let ctx = playingBrowseContext else { return }
+        selectedBook = ctx.book
+        selectedGenre = ctx.genre
+        selectedLiturgy = ctx.liturgy
+        browseMode = ctx.browseMode
+        if let playing = currentPlayingPsalm {
+            selectedPsalm = playing
+            requestScrollToCurrentPsalm()
+        }
+        AccessibilitySupport.haptic(.selection)
     }
 
     func togglePsalmPlayback(_ psalm: Psalm) {

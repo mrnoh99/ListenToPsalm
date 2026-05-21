@@ -5,10 +5,11 @@
 
 import SwiftUI
 
-/// Floating Liquid Glass bar: browse context title and sleep timer control.
+/// Floating Liquid Glass bar: browse context title (left) and sleep timer control (right).
 struct PsalmBrowseGlassBar<SleepTimerLabel: View>: View {
     let barHeight: CGFloat
     let contextTitle: String
+    let onContextTitleTap: () -> Void
     let onSleepTimerTap: () -> Void
     @ViewBuilder var sleepTimerLabel: () -> SleepTimerLabel
 
@@ -17,25 +18,35 @@ struct PsalmBrowseGlassBar<SleepTimerLabel: View>: View {
     init(
         barHeight: CGFloat = AppControlLayout.barHeight,
         contextTitle: String,
+        onContextTitleTap: @escaping () -> Void,
         onSleepTimerTap: @escaping () -> Void,
         @ViewBuilder sleepTimerLabel: @escaping () -> SleepTimerLabel
     ) {
         self.barHeight = barHeight
         self.contextTitle = contextTitle
+        self.onContextTitleTap = onContextTitleTap
         self.onSleepTimerTap = onSleepTimerTap
         self.sleepTimerLabel = sleepTimerLabel
     }
 
     var body: some View {
-        Button(action: performSleepTimerTap) {
-            HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
+            Button(action: performContextTitleTap) {
                 Text(contextTitle)
                     .font(AppControlTypography.labelFont)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityHidden(true)
+                    .frame(height: barHeight)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("재생 분류 보기")
+            .accessibilityHint("재생 중인 시편의 분류로 이동합니다")
+            .accessibilityIdentifier("browse-context-title-button")
 
+            Button(action: performSleepTimerTap) {
                 Label {
                     sleepTimerLabel()
                         .monospacedDigit()
@@ -49,21 +60,27 @@ struct PsalmBrowseGlassBar<SleepTimerLabel: View>: View {
                 .font(AppControlTypography.labelFont)
                 .labelStyle(.titleAndIcon)
                 .fixedSize(horizontal: true, vertical: false)
+                .frame(height: barHeight)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: barHeight)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(AccessibilitySupport.sleepTimerButtonLabel)
+            .accessibilityRemoveTraits(.isButton)
+            .accessibilityHint("수면 타이머를 설정합니다")
+            .accessibilityIdentifier("sleep-timer-button")
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(AccessibilitySupport.sleepTimerButtonLabel)
-        .accessibilityRemoveTraits(.isButton)
-        .accessibilityHint("수면 타이머를 설정합니다")
-        .accessibilityIdentifier("sleep-timer-button")
+        .frame(maxWidth: .infinity)
+        .frame(height: barHeight)
         .modifier(GlassCapsuleSurfaceModifier(
             horizontalPadding: horizontalPadding,
             cornerRadius: AppControlLayout.barCornerRadius
         ))
+    }
+
+    private func performContextTitleTap() {
+        AccessibilitySupport.haptic(.selection)
+        onContextTitleTap()
     }
 
     private func performSleepTimerTap() {
