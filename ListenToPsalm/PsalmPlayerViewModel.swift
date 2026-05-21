@@ -191,8 +191,21 @@ final class PsalmPlayerViewModel: ObservableObject {
             return
         }
         launchResumeOffer = LaunchResumeOffer(psalm: psalm, elapsedSeconds: saved.elapsedSeconds)
-        browseMode = .all
-        selectedBook = psalm.book
+        if let savedMode = saved.browseMode {
+            if let book = saved.book { selectedBook = book }
+            if let genre = saved.genre { selectedGenre = genre }
+            if let liturgy = saved.liturgy { selectedLiturgy = liturgy }
+            browseMode = savedMode
+            playingBrowseContext = PlayingBrowseContext(
+                browseMode: savedMode,
+                book: saved.book ?? selectedBook,
+                genre: saved.genre ?? selectedGenre,
+                liturgy: saved.liturgy ?? selectedLiturgy
+            )
+        } else {
+            browseMode = .all
+            selectedBook = psalm.book
+        }
         selectedPsalm = psalm
     }
 
@@ -330,8 +343,15 @@ final class PsalmPlayerViewModel: ObservableObject {
         let resumePsalm = bookmark.psalm
         let resumeTime = bookmark.time
 
-        browseMode = .all
-        selectedBook = resumePsalm.book
+        if let ctx = playingBrowseContext {
+            selectedBook = ctx.book
+            selectedGenre = ctx.genre
+            selectedLiturgy = ctx.liturgy
+            browseMode = ctx.browseMode
+        } else {
+            browseMode = .all
+            selectedBook = resumePsalm.book
+        }
         selectedPsalm = resumePsalm
 
         playbackMessage = nil
@@ -1076,6 +1096,14 @@ final class PsalmPlayerViewModel: ObservableObject {
     }
 
     private func persistPlayback(from psalm: Psalm, elapsedSeconds: TimeInterval) {
-        PlaybackPersistence.save(psalm: psalm, elapsedSeconds: elapsedSeconds)
+        let context = playingBrowseContext
+        PlaybackPersistence.save(
+            psalm: psalm,
+            elapsedSeconds: elapsedSeconds,
+            browseModeRaw: context?.browseMode.rawValue,
+            bookRaw: context?.book.rawValue,
+            genreRaw: context?.genre.rawValue,
+            liturgyRaw: context?.liturgy.rawValue
+        )
     }
 }

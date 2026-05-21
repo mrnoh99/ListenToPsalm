@@ -10,18 +10,52 @@ enum PlaybackPersistence {
     struct SavedSession: Codable, Equatable {
         let psalmNumber: Int
         let elapsedSeconds: Double
+        var browseModeRaw: String?
+        var bookRaw: Int?
+        var genreRaw: String?
+        var liturgyRaw: String?
 
         var psalm: Psalm? {
             PsalmCatalog.psalm(psalmNumber)
+        }
+
+        var browseMode: BrowseMode? {
+            browseModeRaw.flatMap(BrowseMode.init(rawValue:))
+        }
+
+        var book: PsalmBook? {
+            bookRaw.flatMap(PsalmBook.init(rawValue:))
+        }
+
+        var genre: PsalmGenre? {
+            genreRaw.flatMap(PsalmGenre.init(rawValue:))
+        }
+
+        var liturgy: PsalmLiturgy? {
+            liturgyRaw.flatMap(PsalmLiturgy.init(rawValue:))
         }
     }
 
     private static let userDefaultsKey = "lastPlaybackSession"
 
-    static func save(psalm: Psalm, elapsedSeconds: TimeInterval) {
+    static func save(
+        psalm: Psalm,
+        elapsedSeconds: TimeInterval,
+        browseModeRaw: String? = nil,
+        bookRaw: Int? = nil,
+        genreRaw: String? = nil,
+        liturgyRaw: String? = nil
+    ) {
         guard elapsedSeconds.isFinite, elapsedSeconds >= 0 else { return }
 
-        let session = SavedSession(psalmNumber: psalm.number, elapsedSeconds: elapsedSeconds)
+        let session = SavedSession(
+            psalmNumber: psalm.number,
+            elapsedSeconds: elapsedSeconds,
+            browseModeRaw: browseModeRaw,
+            bookRaw: bookRaw,
+            genreRaw: genreRaw,
+            liturgyRaw: liturgyRaw
+        )
         if let data = try? JSONEncoder().encode(session) {
             UserDefaults.standard.set(data, forKey: userDefaultsKey)
         }
