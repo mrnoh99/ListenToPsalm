@@ -38,7 +38,7 @@ struct ContentView: View {
         ]
     }
 
-    private static let chapterListEdgeSpacerRowCount = 3
+    private static let chapterListEdgeSpacerRowCount = 4
 
     private static let sleepTimerTimedOptions: [PsalmPlayerViewModel.SleepTimerOption] = [
         .thirtyMinutes,
