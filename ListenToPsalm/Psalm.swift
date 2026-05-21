@@ -20,8 +20,8 @@ enum BrowseMode: String, CaseIterable, Identifiable, Hashable, Sendable {
         switch self {
         case .all: return "전체"
         case .byBook: return "권별"
-        case .byGenre: return "장르"
-        case .byLiturgy: return "전례"
+        case .byGenre: return "장르별"
+        case .byLiturgy: return "전례별"
         case .favorites: return "즐겨찾기"
         }
     }
