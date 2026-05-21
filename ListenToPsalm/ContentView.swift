@@ -362,6 +362,7 @@ struct ContentView: View {
             .listRowInsets(chapterListRowInsets)
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
+            .selectionDisabled()
             .accessibilityHidden(true)
             .accessibilityRemoveTraits(.isButton)
             .allowsHitTesting(false)
