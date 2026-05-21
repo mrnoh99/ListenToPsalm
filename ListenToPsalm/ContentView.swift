@@ -547,16 +547,38 @@ private struct ChapterListRowView: View {
     }
 
     var body: some View {
-        Button(action: onPlay, label: { rowLabel })
-            .id(chapter.id)
-            .buttonStyle(.plain)
-            .listRowInsets(rowInsets)
-            .listRowBackground(rowBackground)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(AccessibilitySupport.spokenChapterTitle(for: chapter))
-            .accessibilityIdentifier(chapter.accessibilitySuffix)
-            .accessibilitySortPriority(10)
-            .modifier(AccessibilityProgressModifier(progressText: accessibilityProgressText))
+        HStack(spacing: 12) {
+            favoriteToggleButton
+            Button(action: onPlay, label: { rowLabel })
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(AccessibilitySupport.spokenChapterTitle(for: chapter))
+                .accessibilityIdentifier(chapter.accessibilitySuffix)
+                .accessibilitySortPriority(10)
+                .modifier(AccessibilityProgressModifier(progressText: accessibilityProgressText))
+        }
+        .id(chapter.id)
+        .listRowInsets(rowInsets)
+        .listRowBackground(rowBackground)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var favoriteToggleButton: some View {
+        let favorited = player.isFavorite(chapter.number)
+        return Button {
+            player.toggleFavorite(chapter.number)
+            AccessibilitySupport.haptic(.selection)
+        } label: {
+            Image(systemName: favorited ? "heart.fill" : "heart")
+                .font(.body)
+                .foregroundStyle(favorited ? Color.accentColor : Color.secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(favorited ? "즐겨찾기 해제" : "즐겨찾기 추가")
+        .accessibilityIdentifier("favorite-toggle-\(chapter.number)")
+        .accessibilitySortPriority(5)
     }
 
     private var rowLabel: some View {
