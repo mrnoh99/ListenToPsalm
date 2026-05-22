@@ -577,7 +577,7 @@ private struct ChapterListRowView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(AccessibilitySupport.koreanText(favorited ? "즐겨찾기 해제" : "즐겨찾기 추가"))
+        .accessibilityLabel(AccessibilitySupport.koreanText(favorited ? "즐겨찾기 취소" : "즐겨찾기 추가"))
         .accessibilityIdentifier("favorite-toggle-\(chapter.number)")
         .accessibilitySortPriority(5)
     }
