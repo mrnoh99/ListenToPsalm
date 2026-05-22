@@ -42,7 +42,7 @@ struct PsalmBrowseGlassBar<SleepTimerLabel: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(AccessibilitySupport.koreanText("재생 분류 보기"))
+            .accessibilityLabel(AccessibilitySupport.koreanText(contextTitle))
             .accessibilityHint(AccessibilitySupport.koreanText("재생 중인 시편의 분류로 이동합니다"))
             .accessibilityIdentifier("browse-context-title-button")
 
