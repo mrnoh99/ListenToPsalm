@@ -70,7 +70,7 @@ enum PsalmBook: Int, CaseIterable, Identifiable, Hashable, Sendable {
         case .one: return "다윗의 시편 (개인 탄원)"
         case .two: return "다윗/코라 자손 (공동체)"
         case .three: return "아삽/코라 자손 (성전 예배)"
-        case .four: return "무명 시편 (하나님의 통치)"
+        case .four: return "무명 시편 (하느님의 통치)"
         case .five: return "할렐루야 시편 (찬양)"
         }
     }
@@ -116,7 +116,7 @@ enum PsalmGenre: String, CaseIterable, Identifiable, Hashable, Sendable {
     var subtitle: String? {
         switch self {
         case .pilgrimage: return "120–134편 · 성전 올라가는 노래"
-        case .praise: return "하나님 찬양"
+        case .praise: return "하느님 찬양"
         case .personalLament: return "개인의 고통과 호소"
         case .communityLament: return "민족·공동체의 탄원"
         case .personalThanksgiving: return "개인 구원에 대한 감사"
