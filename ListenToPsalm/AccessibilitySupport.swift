@@ -37,6 +37,14 @@ enum AccessibilitySupport {
     /// VoiceOver label for the sleep timer control (`타이머` + `버튼`, no punctuation that reads as “dot”).
     static let sleepTimerButtonLabel = "타이머 버튼"
 
+    /// Wraps text in a `Text` view tagged with `accessibilitySpeechLanguage = "ko-KR"`
+    /// so VoiceOver reads Hangul with the Korean voice regardless of system locale.
+    static func koreanText(_ string: String) -> Text {
+        var attr = AttributedString(string)
+        attr.accessibilitySpeechLanguage = "ko-KR"
+        return Text(attr)
+    }
+
     private static let sinoKoreanDigits = ["", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"]
 
     /// Chapter numbers for VoiceOver: `2` → `이` (not `둘`).

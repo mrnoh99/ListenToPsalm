@@ -42,8 +42,8 @@ struct PsalmBrowseGlassBar<SleepTimerLabel: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("재생 분류 보기")
-            .accessibilityHint("재생 중인 시편의 분류로 이동합니다")
+            .accessibilityLabel(AccessibilitySupport.koreanText("재생 분류 보기"))
+            .accessibilityHint(AccessibilitySupport.koreanText("재생 중인 시편의 분류로 이동합니다"))
             .accessibilityIdentifier("browse-context-title-button")
 
             Button(action: performSleepTimerTap) {
@@ -65,9 +65,9 @@ struct PsalmBrowseGlassBar<SleepTimerLabel: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(AccessibilitySupport.sleepTimerButtonLabel)
+            .accessibilityLabel(AccessibilitySupport.koreanText(AccessibilitySupport.sleepTimerButtonLabel))
             .accessibilityRemoveTraits(.isButton)
-            .accessibilityHint("수면 타이머를 설정합니다")
+            .accessibilityHint(AccessibilitySupport.koreanText("수면 타이머를 설정합니다"))
             .accessibilityIdentifier("sleep-timer-button")
         }
         .frame(maxWidth: .infinity)

@@ -55,9 +55,9 @@ struct PlaybackGlassMenu: View {
         .buttonStyle(.plain)
         .foregroundStyle(Color.accentColor)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(AccessibilitySupport.playbackButtonLabel(chapterTitle: chapterTitle, isPlaying: isPlaying))
+        .accessibilityLabel(AccessibilitySupport.koreanText(AccessibilitySupport.playbackButtonLabel(chapterTitle: chapterTitle, isPlaying: isPlaying)))
         .accessibilityRemoveTraits(.isButton)
-        .accessibilityHint(isPlaying ? "재생을 멈춥니다" : "선택한 장을 재생합니다")
+        .accessibilityHint(AccessibilitySupport.koreanText(isPlaying ? "재생을 멈춥니다" : "선택한 장을 재생합니다"))
         .accessibilityIdentifier("playback-button")
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

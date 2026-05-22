@@ -294,6 +294,7 @@ struct ContentView: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(AccessibilitySupport.koreanText(mode.shortTitle))
         .accessibilityIdentifier("browse-\(mode.accessibilitySuffix)")
         .accessibilitySortPriority(40)
     }
@@ -432,7 +433,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.borderedProminent)
-            .accessibilityLabel(offer.accessibilityLabel)
+            .accessibilityLabel(AccessibilitySupport.koreanText(offer.accessibilityLabel))
             .accessibilityIdentifier("launch-resume-offer")
         }
     }
@@ -552,7 +553,7 @@ private struct ChapterListRowView: View {
             Button(action: onPlay, label: { rowLabel })
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(AccessibilitySupport.spokenChapterTitle(for: chapter))
+                .accessibilityLabel(AccessibilitySupport.koreanText(AccessibilitySupport.spokenChapterTitle(for: chapter)))
                 .accessibilityIdentifier(chapter.accessibilitySuffix)
                 .accessibilitySortPriority(10)
                 .modifier(AccessibilityProgressModifier(progressText: accessibilityProgressText))
@@ -576,7 +577,7 @@ private struct ChapterListRowView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(favorited ? "즐겨찾기 해제" : "즐겨찾기 추가")
+        .accessibilityLabel(AccessibilitySupport.koreanText(favorited ? "즐겨찾기 해제" : "즐겨찾기 추가"))
         .accessibilityIdentifier("favorite-toggle-\(chapter.number)")
         .accessibilitySortPriority(5)
     }
@@ -821,17 +822,17 @@ private struct MainChromeModifier: ViewModifier {
                     Button(sleepTimerActionTitle(option)) {
                         selectSleepTimer(option)
                     }
-                    .accessibilityLabel(option.title)
-                    .accessibilityHint("수면 타이머를 \(option.title)로 설정")
+                    .accessibilityLabel(AccessibilitySupport.koreanText(option.title))
+                    .accessibilityHint(AccessibilitySupport.koreanText("수면 타이머를 \(option.title)로 설정"))
                 }
                 Button(sleepTimerActionTitle(.continuous)) {
                     selectSleepTimer(.continuous)
                 }
-                .accessibilityLabel("연속 재생")
-                .accessibilityHint("수면 타이머를 비활성화하고 연속 재생")
+                .accessibilityLabel(AccessibilitySupport.koreanText("연속 재생"))
+                .accessibilityHint(AccessibilitySupport.koreanText("수면 타이머를 비활성화하고 연속 재생"))
                 Button("취소", role: .cancel) {}
-                    .accessibilityLabel("취소")
-                    .accessibilityHint("타이머 설정을 취소")
+                    .accessibilityLabel(AccessibilitySupport.koreanText("취소"))
+                    .accessibilityHint(AccessibilitySupport.koreanText("타이머 설정을 취소"))
             } message: {
                 Text("타이머 시간을 정합니다")
             }
