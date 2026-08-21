@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var isBookPickerPresented = false
     @State private var isGenrePickerPresented = false
     @State private var isLiturgyPickerPresented = false
+    @State private var isSettingsPresented = false
     @State private var controlsHeaderBottomOffset: CGFloat = 0
     @ScaledMetric(relativeTo: .body) private var chapterListRowMinHeight: CGFloat = 58
     @ScaledMetric(relativeTo: .body) private var chapterListRowVerticalInset: CGFloat = 12
@@ -64,6 +65,9 @@ struct ContentView: View {
                 reassertPlayback: { player.reassertAudioPlaybackIfNeeded() }
             ))
             .onPreferenceChange(ControlsHeaderBottomOffsetKey.self) { controlsHeaderBottomOffset = $0 }
+            .sheet(isPresented: $isSettingsPresented) {
+                AppSettingsView()
+            }
     }
 
     /// Top scroll inset: keeps chapter rows below the title and 2×2 grid (no overlap with 「시편듣기」).
@@ -112,11 +116,25 @@ struct ContentView: View {
     }
 
     private var appTitleView: some View {
-        Text("시편듣기")
-            .font(.largeTitle.bold())
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilitySortPriority(50)
+        HStack(alignment: .center, spacing: 12) {
+            Text("시편듣기")
+                .font(.largeTitle.bold())
+                .accessibilityAddTraits(.isHeader)
+                .accessibilitySortPriority(50)
+
+            Spacer()
+
+            Button {
+                isSettingsPresented = true
+            } label: {
+                Image(systemName: "gear")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("설정")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Title + gospel grid + sleep timer; measured height is the chapter list top inset.
