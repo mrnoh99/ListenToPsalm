@@ -108,7 +108,11 @@ struct ContentView: View {
     }
 
     private var footerBar: some View {
-        Text("by njs 2026")
+        let bundle = Bundle.main
+        let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let build = bundle.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+
+        return Text("by njs 2026 v\(version) (\(build))")
             .font(.system(size: 8))
             .foregroundStyle(.tertiary)
             .frame(maxWidth: .infinity, alignment: .trailing)
