@@ -66,6 +66,15 @@ final class BackupManager {
         try? FileManager.default.createDirectory(at: backupDir, withIntermediateDirectories: true)
     }
 
+    // MARK: - Private Helpers
+
+    private func copyBackupItem(from source: URL, to destination: URL) throws {
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        try FileManager.default.copyItem(at: source, to: destination)
+    }
+
     // MARK: - 자동 백업 체크
 
     func shouldBackup() -> Bool {
@@ -211,7 +220,7 @@ final class BackupManager {
         let temp = FileManager.default.temporaryDirectory.appendingPathComponent("backup.zip")
 
         do {
-            try FileManager.default.copyItem(at: backup.path, to: temp)
+            try copyBackupItem(from: backup.path, to: temp)
             return temp
         } catch {
             return nil
