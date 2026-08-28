@@ -682,7 +682,8 @@ struct NotesList: View {
                             .frame(minWidth: settings.fontSize * 1.3, alignment: .trailing)
                         // 단어 선택(네이티브)과 성경 인용 링크 탭을 함께 지원.
                         let normalizedText = ScriptureRefNormalizer.normalize(note.text, currentBookID: bookID, chapter: chapter)
-                        SelectableNoteText(text: normalizedText, currentBook: bookID, chapter: chapter,
+                        let textWithMarkers = ScriptureRefNormalizer.addVerseMarkers(normalizedText)
+                        SelectableNoteText(text: textWithMarkers, currentBook: bookID, chapter: chapter,
                                            font: noteUIFont,
                                            color: UIColor(settings.theme.text),
                                            linkColor: UIColor(Color.accentColor),
