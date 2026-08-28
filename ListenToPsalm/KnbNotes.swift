@@ -40,11 +40,23 @@ enum ScriptureRefNormalizer {
     static func normalize(_ text: String, currentBookID: String = "", chapter: Int = 0) -> String {
         var result = text
 
+        // 0단계: 모든 대시 유형을 표준 하이픈으로 통일 (74─89과 74-89을 동일하게 취급)
+        // en-dash (─), em-dash (—), minus (−) 등 모두 hyphen-minus (-)로 변환
+        result = result
+            .replacingOccurrences(of: "─", with: "-")  // en-dash
+            .replacingOccurrences(of: "—", with: "-")  // em-dash
+            .replacingOccurrences(of: "−", with: "-")  // minus sign
+
         // 1단계: "책 장의 절과 절" 형태를 정규화
         result = normalizeChapterRanges(result)
 
-        // 2단계: "절 참조" 패턴 정규화 (괄호나 "참조" 포함)
+        // 1.5단계: "절 범위 참조" 패턴 정규화 (예: "(1,1─2,4ㄱ)")
         let currentBook = currentBookID.isEmpty ? nil : Bible.book(currentBookID)?.name
+        if let currentBook = currentBook, chapter > 0 {
+            result = normalizeVerseRangeReferences(result, currentBook: currentBook)
+        }
+
+        // 2단계: "절 참조" 패턴 정규화 (괄호나 "참조" 포함)
         if let currentBook = currentBook {
             result = normalizeVerseOnlyReferences(result, currentBook: currentBook, chapter: chapter)
         }
@@ -70,91 +82,10 @@ enum ScriptureRefNormalizer {
             result = normalizeCommaDotFormatReferences(result, currentBook: currentBook)
         }
 
-        // 4단계: 세미콜론 구분 참조 정규화 (기존 로직)
-        let parts = result.split(separator: ";", omittingEmptySubsequences: false).map { String($0) }
-        var normalized: [String] = []
-        var contextBook: String? = currentBook
+        // 4단계: 세미콜론 구분 참조 정규화 (강화된 로직)
+        result = normalizeSemicolonSeparatedReferences(result, currentBook: currentBook, currentBookID: currentBookID)
 
-        for part in parts {
-            let trimmed = part.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty {
-                normalized.append(part)
-                continue
-            }
-
-            let (book, ref) = extractBookAndRef(from: trimmed)
-
-            // 책 이름이나 약자가 명시되지 않은 경우, ref에 약자가 있는지 다시 확인
-            var finalBook = book
-            var finalRef = ref
-
-            if book == nil && !ref.isEmpty {
-                // ref의 앞에 있는 구두점 제거하고 첫 단어가 책 약자인지 확인
-                var refToCheck = ref
-                while !refToCheck.isEmpty && !refToCheck.first!.isLetter {
-                    refToCheck.removeFirst()
-                }
-
-                let refWords = refToCheck.split(separator: " ", maxSplits: 1).map { String($0) }
-                if !refWords.isEmpty {
-                    let firstWord = refWords[0]
-                    if let foundBook = Bible.books.first(where: { $0.abbrev == firstWord || $0.searchKeywords.contains(firstWord) }) {
-                        // 약자를 찾았으므로 책 이름을 사용하되, 약자는 유지
-                        finalBook = foundBook.name
-                        finalRef = ref  // 약자를 포함한 원본 ref 유지
-                    }
-                }
-            }
-
-            if let book = finalBook {
-                contextBook = book
-                // 책 이름이 명시된 경우: 중복 방지
-                // ref가 책 약자로 시작하는지 확인 (예: "마태 1,1", "마르 2,1" 등)
-                var shouldIncludeBook = true
-                let refWords = finalRef.split(separator: " ").map { String($0) }
-                if !refWords.isEmpty {
-                    let firstWord = refWords[0]
-                    // 참조의 첫 단어가 어떤 책의 약자나 검색 키워드와 일치하면 중복으로 판단
-                    if Bible.books.contains(where: { $0.abbrev == firstWord || $0.searchKeywords.contains(firstWord) }) {
-                        shouldIncludeBook = false
-                    }
-
-                    // ref의 어느 부분이든 책 이름이나 약자가 있으면, 그 부분부터 시작하는 참조로 재처리
-                    // 예: "복음서 사도 4,31" → "사도 4,31" 사용
-                    if shouldIncludeBook && refWords.count > 1 {
-                        for i in 1..<refWords.count {
-                            let potentialBookRef = refWords[i...].joined(separator: " ")
-                            let currentWord = refWords[i]
-
-                            // 약자 또는 searchKeywords 확인
-                            if let foundBook = Bible.books.first(where: {
-                                $0.abbrev == currentWord || $0.searchKeywords.contains(currentWord)
-                            }) {
-                                finalRef = potentialBookRef
-                                shouldIncludeBook = false
-                                break
-                            }
-                            // 전체 책 이름 확인
-                            if let foundBook = Bible.books.first(where: { potentialBookRef.hasPrefix($0.name) }) {
-                                finalRef = potentialBookRef
-                                shouldIncludeBook = false
-                                break
-                            }
-                        }
-                    }
-                }
-
-                if shouldIncludeBook {
-                    normalized.append(part.replacingOccurrences(of: trimmed, with: "\(book) \(finalRef)"))
-                } else {
-                    normalized.append(part.replacingOccurrences(of: trimmed, with: finalRef))
-                }
-            } else {
-                normalized.append(part)
-            }
-        }
-
-        return normalized.joined(separator: ";")
+        return result
     }
 
     /// 절만 있는 참조를 정규화한다.
@@ -168,7 +99,7 @@ enum ScriptureRefNormalizer {
         // 패턴 1: "(절 번호절)" 또는 "(절 범위절)"
         // 예: "(29절)", "(1-23절)", "(18ㄴ-21절)", "(29-31절)", "(11-47절)"
         // 명시적 절 범위 패턴: 숫자[한글?][-숫자[한글?]?]?
-        let pattern1 = "\\((\\d+[ㄱ-ㅁ]?(?:[-─]\\d+[ㄱ-ㅁ]?)?)절\\)"
+        let pattern1 = "\\((\\d+[ㄱ-ㅁ]?(?:-\\d+[ㄱ-ㅁ]?)?)절\\)"
         if let regex = try? NSRegularExpression(pattern: pattern1) {
             let ns = text as NSString
             let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
@@ -183,7 +114,7 @@ enum ScriptureRefNormalizer {
 
         // 패턴 2: "절 각주 참조" 또는 "절에/에서/의" 형태 (뒤에 문맥 단어가 올 수 있음)
         // 예: "6절 각주 참조", "11절에 나온다", "17-23절에서는", "24-27절의 명단", "18ㄴ-21절의"
-        let pattern2 = "(\\d+[ㄱ-ㅁ]?(?:[-─]\\d+[ㄱ-ㅁ]?)?)절(?:\\s*(?:에(?:\\s+[가-힣]+)*|에서(?:\\s+[가-힣]+)*|의|각주\\s*참조))"
+        let pattern2 = "(\\d+[ㄱ-ㅁ]?(?:-\\d+[ㄱ-ㅁ]?)?)절(?:\\s*(?:에(?:\\s+[가-힣]+)*|에서(?:\\s+[가-힣]+)*|의|각주\\s*참조))"
         if let regex = try? NSRegularExpression(pattern: pattern2) {
             let ns = text as NSString
             let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
@@ -193,9 +124,53 @@ enum ScriptureRefNormalizer {
                     let fullMatch = ns.substring(with: match.range)
                     // 앞에 "현재책"을 추가하되 중복 제거
                     if !fullMatch.hasPrefix(currentBook) {
-                        let replacement = "\(currentBook) \(chapterStr)\(fullMatch)"
+                        // verse (예: "5절")만 사용해서 LinkableRef 형태로 변환
+                        // fullMatch (예: "5절의")의 뒤 부분은 따로 보존
+                        let suffix = String(fullMatch.dropFirst(verse.count))  // "의" 등
+                        let replacement = "\(currentBook) \(chapterStr)\(verse)\(suffix)"
                         result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
                     }
+                }
+            }
+        }
+
+        return result
+    }
+
+    /// 절 범위 참조를 정규화한다.
+    /// 예: "(1,1─2,4ㄱ)" → "(책 1,1─2,4ㄱ)" 또는 원래대로 유지
+    /// 장과 절이 명시된 범위 형식을 처리 (ㄱ-ㅂ = a-f 절 구분)
+    private static func normalizeVerseRangeReferences(_ text: String, currentBook: String) -> String {
+        var result = text
+
+        // 패턴: "(숫자,숫자[한글]─숫자,숫자[한글])" 또는 유사한 형식
+        // 예: (1,1─2,4ㄱ), (2,4ㄴ-23), (3,5ㅂ) 등
+        let pattern = "\\((\\d+,[\\d,ㄱ-ㅂ\\-─]+)\\)"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return result
+        }
+
+        let ns = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+
+        for match in matches.reversed() {
+            if match.numberOfRanges >= 2 {
+                let refContent = ns.substring(with: match.range(at: 1))
+                let fullMatch = ns.substring(with: match.range)
+
+                // 이미 책 이름이 있는지 확인
+                var hasBook = false
+                for book in Bible.books {
+                    if refContent.hasPrefix(book.name) || refContent.hasPrefix(book.abbrev) {
+                        hasBook = true
+                        break
+                    }
+                }
+
+                if !hasBook {
+                    // 책 이름 추가
+                    let replacement = "(\(currentBook) \(refContent))"
+                    result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
                 }
             }
         }
@@ -256,20 +231,45 @@ enum ScriptureRefNormalizer {
     private static func normalizeIntroductionReferences(_ text: String, currentBook: String) -> String {
         var result = text
 
-        // 패턴: "('입문' 숫자[의 숫자] [참조]?)"
+        // 패턴 1: "('입문' 숫자[의 숫자] [참조]?)"
         // 예: ('입문' 6 참조), ('입문' 4의 2), ('입문' 5)
-        let pattern = "\\('입문'\\s+\\d+(?:의\\s*\\d+)?(?:\\s*참조)?\\)"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return result
+        let pattern1 = "\\('입문'\\s+\\d+(?:의\\s*\\d+)?(?:\\s*참조)?\\)"
+        if let regex = try? NSRegularExpression(pattern: pattern1) {
+            let ns = text as NSString
+            let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+
+            for match in matches.reversed() {
+                let replacement = "(\(currentBook) 입문)"
+                result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
+            }
         }
 
-        let ns = text as NSString
-        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+        // 패턴 2: "(입문 참조)" 또는 "(입문)" - 현재 책이 명시되지 않은 경우
+        let pattern2 = "\\(입문(?:\\s*참조)?\\)"
+        if let regex = try? NSRegularExpression(pattern: pattern2) {
+            let ns = result as NSString
+            let matches = regex.matches(in: result, range: NSRange(location: 0, length: ns.length))
 
-        for match in matches.reversed() {
-            // 모든 입문 참조를 현재 책의 입문으로 정규화
-            let replacement = "(\(currentBook) 입문)"
-            result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
+            for match in matches.reversed() {
+                let replacement = "(\(currentBook) 입문)"
+                result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
+            }
+        }
+
+        // 패턴 3: 책 이름 다음에 오는 "입문" 참조 (예: "창세 입문 참조")
+        let pattern3 = "(\(NSRegularExpression.escapedPattern(for: currentBook)))\\s+(입문(?:\\s*참조)?)"
+        if let regex = try? NSRegularExpression(pattern: pattern3) {
+            let ns = result as NSString
+            let matches = regex.matches(in: result, range: NSRange(location: 0, length: ns.length))
+
+            for match in matches.reversed() {
+                if match.numberOfRanges >= 3 {
+                    let book = ns.substring(with: match.range(at: 1))
+                    let intro = ns.substring(with: match.range(at: 2))
+                    let replacement = "(\(book) 입문)"
+                    result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
+                }
+            }
         }
 
         return result
@@ -384,7 +384,7 @@ enum ScriptureRefNormalizer {
 
         // 패턴 1: 책 이름이 명시된 경우 - "(책이름 장─장[장?] [참조]?)"
         for book in bookNames {
-            let pattern = "\\(\(NSRegularExpression.escapedPattern(for: book))\\s+(\\d+)[-─](\\d+)(?:장)?(?:\\s*참조)?\\)"
+            let pattern = "\\(\(NSRegularExpression.escapedPattern(for: book))\\s+(\\d+)-(\\d+)(?:장)?(?:\\s*참조)?\\)"
             guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
 
             let ns = result as NSString
@@ -402,7 +402,7 @@ enum ScriptureRefNormalizer {
 
         // 패턴 2: 책 이름 없는 경우 - "(장─장[장?] [참조]?)"
         if let currentBook = currentBook {
-            let pattern = "\\((\\d+)[-─](\\d+)(?:장)?(?:\\s*참조)?\\)"
+            let pattern = "\\((\\d+)-(\\d+)(?:장)?(?:\\s*참조)?\\)"
             guard let regex = try? NSRegularExpression(pattern: pattern) else {
                 return result
             }
@@ -522,6 +522,42 @@ enum ScriptureRefNormalizer {
         return (nil, ref)
     }
 
+    /// 범위 참조가 장 범위인지 절 범위인지 판단한다.
+    /// "74-89"는 문맥상 절인지 장인지 판단하는 로직:
+    /// 1. N,M 형태 (쉼표 포함) → 절 범위
+    /// 2. N-M 형태 (쉼표 없음)에서:
+    ///    - N이 현재 장을 초과 → 장 범위 (현재 장의 절이 될 수 없음)
+    ///    - N이 현재 장 이하이고 M이 해당 장의 최대 절 수를 초과 → 장 범위
+    ///    - 그 외 → 절 범위
+    private static func isChapterRange(_ ref: String, currentChapter: Int, bookID: String) -> Bool {
+        // 쉼표가 있으면 "장,절" 형식이므로 절 범위
+        if ref.contains(",") {
+            return false
+        }
+
+        // "N-M" 형태에서 N과 M 추출
+        let parts = ref.split(separator: "-").map { String($0).trimmingCharacters(in: .whitespaces) }
+        guard parts.count == 2,
+              let startNum = Int(parts[0]),
+              let endNum = Int(parts[1]) else {
+            return false
+        }
+
+        // startNum이 현재 장을 초과하면 장 범위
+        if startNum > currentChapter {
+            return true
+        }
+
+        // Psalm의 최대 절 수를 확인 (다른 책도 문맥에 따라 조정 가능)
+        // Psalm은 150장까지 있음
+        if bookID == "ps" && startNum <= 150 && endNum <= 150 {
+            return true
+        }
+
+        // 기본적으로 장 범위가 아닌 것으로 취급 (절 범위)
+        return false
+    }
+
     /// "창세 10장의 9-12절과 18ㄴ-21절" → "창세 10,9-12; 창세 10,18ㄴ-21"
     /// 같은 장 내의 여러 절 범위를 정규화한다.
     static func normalizeChapterRanges(_ text: String) -> String {
@@ -567,9 +603,137 @@ enum ScriptureRefNormalizer {
         return result
     }
 
+    /// Phase 1: 세미콜론으로 분리된 참조의 문맥 상속 로직 강화
+    /// 예: "창세 1,1; 2,4-23" → "창세 1,1; 창세 2,4-23"
+    /// 예: "; 21,1-7에 따르면" → "창기 21,1-7에 따르면" (앞 문맥에서 책 이름 상속)
+    /// 세미콜론 뒤에 책 이름이 없는 경우, 이전 참조의 책 이름을 상속하거나
+    /// 현재 주석의 책 이름을 사용한다.
+    private static func normalizeSemicolonSeparatedReferences(_ text: String, currentBook: String, currentBookID: String) -> String {
+        let parts = text.split(separator: ";", omittingEmptySubsequences: false).map { String($0) }
+        var normalized: [String] = []
+        var contextBook: String? = currentBook.isEmpty ? nil : currentBook
+        var contextBookID: String? = currentBookID.isEmpty ? nil : currentBookID
+        var lastParsedChapter: Int = 0
+
+        for part in parts {
+            let trimmed = part.trimmingCharacters(in: .whitespaces)
+
+            if trimmed.isEmpty {
+                normalized.append(part)
+                continue
+            }
+
+            let (book, ref) = extractBookAndRef(from: trimmed)
+            var finalBook = book
+            var finalRef = ref
+
+            // 1단계: 책 이름이 없으면 ref 시작 부분에 책 약자가 있는지 확인
+            if book == nil && !ref.isEmpty {
+                var refToCheck = ref
+                // 앞의 구두점 제거
+                while !refToCheck.isEmpty && !refToCheck.first!.isLetter {
+                    refToCheck.removeFirst()
+                }
+
+                let refWords = refToCheck.split(separator: " ", maxSplits: 1).map { String($0) }
+                if !refWords.isEmpty {
+                    let firstWord = refWords[0]
+                    if let foundBook = Bible.books.first(where: { $0.abbrev == firstWord || $0.searchKeywords.contains(firstWord) }) {
+                        finalBook = foundBook.name
+                        finalRef = ref
+                    }
+                }
+            }
+
+            // 2단계: 책 이름이 명시된 경우 - contextBook 업데이트
+            if let book = finalBook {
+                contextBook = book
+                if let foundBook = Bible.book(book) {
+                    contextBookID = foundBook.id
+                }
+
+                // 장 번호 추출 (다음 참조에 컨텍스트 제공용)
+                if let firstNum = Int(finalRef.split(separator: ",").first ?? "") {
+                    lastParsedChapter = firstNum
+                }
+
+                // 중복 제거 (ref에 책 약자가 포함된 경우)
+                var shouldIncludeBook = true
+                let refWords = finalRef.split(separator: " ").map { String($0) }
+                if !refWords.isEmpty {
+                    let firstWord = refWords[0]
+                    if Bible.books.contains(where: { $0.abbrev == firstWord || $0.searchKeywords.contains(firstWord) }) {
+                        shouldIncludeBook = false
+                    }
+
+                    // ref 내 다른 책 이름/약자 찾기
+                    if shouldIncludeBook && refWords.count > 1 {
+                        for i in 1..<refWords.count {
+                            let potentialBookRef = refWords[i...].joined(separator: " ")
+                            let currentWord = refWords[i]
+
+                            if let foundBook = Bible.books.first(where: {
+                                $0.abbrev == currentWord || $0.searchKeywords.contains(currentWord)
+                            }) {
+                                finalRef = potentialBookRef
+                                shouldIncludeBook = false
+                                break
+                            }
+                            if let foundBook = Bible.books.first(where: { potentialBookRef.hasPrefix($0.name) }) {
+                                finalRef = potentialBookRef
+                                shouldIncludeBook = false
+                                break
+                            }
+                        }
+                    }
+                }
+
+                if shouldIncludeBook {
+                    normalized.append(part.replacingOccurrences(of: trimmed, with: "\(book) \(finalRef)"))
+                } else {
+                    normalized.append(part.replacingOccurrences(of: trimmed, with: finalRef))
+                }
+            }
+            // 3단계: 책 이름이 없는 경우 - contextBook 상속
+            else if let contextBook = contextBook {
+                if !finalRef.isEmpty {
+                    let firstChar = finalRef.first
+                    if firstChar?.isNumber ?? false {
+                        // 숫자로 시작하는 참조: contextBook 추가
+                        if let bookID = contextBookID, isChapterRange(finalRef, currentChapter: lastParsedChapter, bookID: bookID) {
+                            normalized.append(part.replacingOccurrences(of: trimmed, with: "\(contextBook) \(finalRef)"))
+                        } else {
+                            normalized.append(part.replacingOccurrences(of: trimmed, with: "\(contextBook) \(finalRef)"))
+                        }
+
+                        // 장 번호 업데이트 (같은 책 내 계속된 참조용)
+                        if let firstNum = Int(finalRef.split(separator: ",").first ?? "") {
+                            lastParsedChapter = firstNum
+                        }
+                    } else {
+                        // 숫자로 시작하지 않으면 그대로 유지 (문맥 텍스트)
+                        normalized.append(part)
+                    }
+                } else {
+                    normalized.append(part)
+                }
+            }
+            // 4단계: contextBook도 없으면 그대로 유지
+            else {
+                normalized.append(part)
+            }
+        }
+
+        return normalized.joined(separator: ";")
+    }
+
     /// 성경 참조 텍스트를 AttributedString으로 변환하여 cross-link를 추가한다.
     static func attributed(_ text: String) -> AttributedString {
-        let normalized = normalize(text)
+        var normalized = normalize(text)
+        // 입문 본문용: "절" 마커 추가 (예: "창세 1,1" → "창세 1,1절")
+        // ScriptureRefLink의 koreanRegex가 "절"을 요구하므로 필요함
+        normalized = addVerseMarkers(normalized)
+
         var result = AttributedString()
 
         // 참조별로 파싱
@@ -601,6 +765,53 @@ enum ScriptureRefNormalizer {
                 }
             } else {
                 result += AttributedString(String(part))
+            }
+        }
+
+        return result
+    }
+
+    /// 정규화된 텍스트에 "절" 마커를 추가한다.
+    /// 예: "창세 1,1" → "창세 1,1절", "1,1" → "1,1절"
+    /// ScriptureRefLink의 koreanRegex가 절 마커를 요구하므로 필요
+    private static func addVerseMarkers(_ text: String) -> String {
+        var result = text
+
+        // 패턴 1: "책이름 장,절" → "책이름 장,절절"
+        // 책 이름으로 시작하는 참조에 절 마커 추가
+        for book in Bible.books {
+            let pattern = "(\(NSRegularExpression.escapedPattern(for: book.name)))\\s+(\\d+,\\d+[ㄱ-ㅂ]?)(?!절)"
+            if let regex = try? NSRegularExpression(pattern: pattern) {
+                let ns = text as NSString
+                let matches = regex.matches(in: result, range: NSRange(location: 0, length: (result as NSString).length))
+
+                for match in matches.reversed() {
+                    if match.numberOfRanges >= 3 {
+                        let bookName = ns.substring(with: match.range(at: 1))
+                        let ref = ns.substring(with: match.range(at: 2))
+                        let replacement = "\(bookName) \(ref)절"
+                        result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
+                    }
+                }
+            }
+        }
+
+        // 패턴 2: "장,절" (괄호나 세미콜론 뒤) → "장,절절"
+        // 책 이름 없이 장,절로만 된 참조에 절 마커 추가
+        let pattern2 = "(?:^|[\\(;\\s])(\\d+,\\d+[ㄱ-ㅂ]?)(?!절)"
+        if let regex = try? NSRegularExpression(pattern: pattern2) {
+            let ns = result as NSString
+            let matches = regex.matches(in: result, range: NSRange(location: 0, length: ns.length))
+
+            for match in matches.reversed() {
+                if match.numberOfRanges >= 2 && match.range(at: 1).location != NSNotFound {
+                    let ref = ns.substring(with: match.range(at: 1))
+                    // 앞의 문자 확인
+                    let fullRange = match.range
+                    let prefix = fullRange.location > 0 ? ns.substring(with: NSRange(location: fullRange.location, length: 1)) : " "
+                    let replacement = "\(prefix)\(ref)절"
+                    result = (result as NSString).replacingCharacters(in: fullRange, with: replacement)
+                }
             }
         }
 
