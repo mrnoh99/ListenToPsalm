@@ -944,17 +944,39 @@ enum ScriptureRefNormalizer {
     }
 
     /// 정규화된 텍스트에 "절" 마커를 추가한다.
-    /// 예: "창세 1,1" → "창세 1,1절", "1,1" → "1,1절"
+    /// 예: "창세 1,1" → "창세 1,1절", "1,1" → "1,1절", "창세 1,1-2,4" → "창세 1,1절-2,4절"
     /// ScriptureRefLink의 koreanRegex가 절 마커를 요구하므로 필요
     private static func addVerseMarkers(_ text: String) -> String {
         var result = text
 
+        // 패턴 0: "책이름 장,절-장,절" 범위 → 각 절 뒤에 마커 추가
+        // 예: "창세 1,1-2,4" → "창세 1,1절-2,4절"
+        for book in Bible.books {
+            let pattern = "(\(NSRegularExpression.escapedPattern(for: book.name)))\\s+(\\d+),(\\d+)-(\\d+),(\\d+)(?!절)"
+            if let regex = try? NSRegularExpression(pattern: pattern) {
+                let ns = result as NSString
+                let matches = regex.matches(in: result, range: NSRange(location: 0, length: (result as NSString).length))
+
+                for match in matches.reversed() {
+                    if match.numberOfRanges >= 6 {
+                        let bookName = ns.substring(with: match.range(at: 1))
+                        let ch1 = ns.substring(with: match.range(at: 2))
+                        let v1 = ns.substring(with: match.range(at: 3))
+                        let ch2 = ns.substring(with: match.range(at: 4))
+                        let v2 = ns.substring(with: match.range(at: 5))
+                        let replacement = "\(bookName) \(ch1),\(v1)절-\(ch2),\(v2)절"
+                        result = (result as NSString).replacingCharacters(in: match.range, with: replacement)
+                    }
+                }
+            }
+        }
+
         // 패턴 1: "책이름 장,절" → "책이름 장,절절"
         // 책 이름으로 시작하는 참조에 절 마커 추가
         for book in Bible.books {
-            let pattern = "(\(NSRegularExpression.escapedPattern(for: book.name)))\\s+(\\d+,\\d+[ㄱ-ㅂ]?)(?!절)"
+            let pattern = "(\(NSRegularExpression.escapedPattern(for: book.name)))\\s+(\\d+,\\d+)(?!절|-)"
             if let regex = try? NSRegularExpression(pattern: pattern) {
-                let ns = text as NSString
+                let ns = result as NSString
                 let matches = regex.matches(in: result, range: NSRange(location: 0, length: (result as NSString).length))
 
                 for match in matches.reversed() {
@@ -968,9 +990,9 @@ enum ScriptureRefNormalizer {
             }
         }
 
-        // 패턴 2: "장,절" (괄호나 세미콜론 뒤) → "장,절절"
+        // 패턴 2: "장,절" (괄호나 세미콜론 뒤, 범위 아님) → "장,절절"
         // 책 이름 없이 장,절로만 된 참조에 절 마커 추가
-        let pattern2 = "(?:^|[\\(;\\s])(\\d+,\\d+[ㄱ-ㅂ]?)(?!절)"
+        let pattern2 = "(?:^|[\\(;\\s])(\\d+,\\d+)(?!절|-)"
         if let regex = try? NSRegularExpression(pattern: pattern2) {
             let ns = result as NSString
             let matches = regex.matches(in: result, range: NSRange(location: 0, length: ns.length))
