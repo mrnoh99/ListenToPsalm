@@ -122,7 +122,7 @@ struct AnnotatedReader: View {
                     .environment(knb)
             }
             .environment(\.openURL, OpenURLAction { url in
-                handleURLInternal(url)
+                return handleURLInternal(url)
             })
     }
 
