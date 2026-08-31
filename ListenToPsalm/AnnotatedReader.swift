@@ -63,12 +63,11 @@ struct AnnotatedReader: View {
     }
 
     var body: some View {
-        Group {
-            VStack(spacing: 0) {
-                if showHeader { header }
-                content
-                chapterBar
-            }
+        VStack(spacing: 0) {
+            if showHeader { header }
+            content
+            chapterBar
+        }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onAppear {
                 initChapterIfNeeded()
@@ -125,7 +124,6 @@ struct AnnotatedReader: View {
             .environment(\.openURL, OpenURLAction { url in
                 handleURLInternal(url)
             })
-        }
     }
 
     private func handleURLInternal(_ url: URL) -> OpenURLAction.Result {
