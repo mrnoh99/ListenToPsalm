@@ -122,7 +122,39 @@ struct AnnotatedReader: View {
                     .environment(navigation)
                     .environment(knb)
             }
+            .environment(\.openURL, OpenURLAction { url in
+                handleURLInternal(url)
+            })
         }
+    }
+
+    private func handleURLInternal(_ url: URL) -> OpenURLAction.Result {
+        guard url.scheme == "catholicbible" else { return .discarded }
+        if url.host == "xref" {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            func q(_ k: String) -> String? { items.first { $0.name == k }?.value }
+            if let b = q("b"), let cs = q("c"), let c = Int(cs),
+               let vs = q("v"), let v = Int(vs) {
+                xrefTarget = XrefTarget(bookID: b, chapter: c, verse: v,
+                                        endChapter: q("ec").flatMap { Int($0) } ?? 0,
+                                        endVerse: q("ev").flatMap { Int($0) } ?? 0)
+                return .handled
+            }
+        }
+        if url.host == "note" {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            func q(_ k: String) -> String? { items.first { $0.name == k }?.value }
+            if let b = q("b"), let cs = q("c"), let c = Int(cs), let n = q("n") {
+                let note = knb.notes(edition: editionID, bookID: b, chapter: c)
+                    .first(where: { $0.n == n })
+                DispatchQueue.main.async {
+                    noteTarget = MarkerNoteTarget(n: n, text: note?.text ?? "주석없음", bookID: b, chapter: c)
+                }
+            }
+            return .handled
+        }
+        parentOpenURL(url)
+        return .handled
     }
 
     // MARK: 위치
