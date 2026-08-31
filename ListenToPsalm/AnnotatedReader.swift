@@ -230,31 +230,6 @@ struct AnnotatedReader: View {
                 }
             }
         }
-        .environment(\.openURL, OpenURLAction { url in
-            if url.scheme == "catholicbible", url.host == "xref" {
-                let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-                func q(_ k: String) -> String? { items.first { $0.name == k }?.value }
-                if let b = q("b"), let cs = q("c"), let c = Int(cs),
-                   let vs = q("v"), let v = Int(vs) {
-                    xrefTarget = XrefTarget(bookID: b, chapter: c, verse: v,
-                                            endChapter: q("ec").flatMap { Int($0) } ?? 0,
-                                            endVerse: q("ev").flatMap { Int($0) } ?? 0)
-                }
-                return .handled
-            }
-            if url.scheme == "catholicbible", url.host == "note" {
-                let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-                func q(_ k: String) -> String? { items.first { $0.name == k }?.value }
-                if let b = q("b"), let cs = q("c"), let c = Int(cs), let n = q("n"),
-                   let text = knb.notes(edition: editionID, bookID: b, chapter: c)
-                    .first(where: { $0.n == n })?.text {
-                    noteTarget = MarkerNoteTarget(n: n, text: text, bookID: b, chapter: c)
-                }
-                return .handled
-            }
-            parentOpenURL(url)
-            return .handled
-        })
     }
 
     private var emptyNotesHint: String {
