@@ -127,8 +127,10 @@ struct AnnotatedReader: View {
     }
 
     private func handleURLInternal(_ url: URL) -> OpenURLAction.Result {
+        print("📱 [AnnotatedReader] handleURLInternal: \(url.scheme)://\(url.host ?? "?") - \(url)")
         guard url.scheme == "catholicbible" else { return .discarded }
         if url.host == "xref" {
+            print("  ✓ xref handler")
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
             func q(_ k: String) -> String? { items.first { $0.name == k }?.value }
             if let b = q("b"), let cs = q("c"), let c = Int(cs),
@@ -140,17 +142,23 @@ struct AnnotatedReader: View {
             }
         }
         if url.host == "note" {
+            print("  ✓ note handler")
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
             func q(_ k: String) -> String? { items.first { $0.name == k }?.value }
             if let b = q("b"), let cs = q("c"), let c = Int(cs), let n = q("n") {
+                print("  ✓ parsed: book=\(b), ch=\(c), note=\(n)")
                 let note = knb.notes(edition: editionID, bookID: b, chapter: c)
                     .first(where: { $0.n == n })
                 DispatchQueue.main.async {
                     noteTarget = MarkerNoteTarget(n: n, text: note?.text ?? "주석없음", bookID: b, chapter: c)
+                    print("  ✓ noteTarget SET")
                 }
+            } else {
+                print("  ✗ failed to parse")
             }
             return .handled
         }
+        print("  → parentOpenURL")
         parentOpenURL(url)
         return .handled
     }
