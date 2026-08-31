@@ -564,6 +564,7 @@ struct AnnotationsPane: View {
     var editionID: String = "knbnotes"
     @State private var tab = 0        // 0=주석, 1=상호참조
     @Environment(ReaderSettings.self) private var settings
+    @Environment(\.openURL) private var openURL
 
     private var hasXrefs: Bool { !xrefs.isEmpty }
 
@@ -584,12 +585,14 @@ struct AnnotationsPane: View {
                           searchQuery: searchQuery,
                           selectedAnnotationNumber: selectedAnnotationNumber,
                           editionID: editionID)
+                    .environment(\.openURL, openURL)
             } else {
                 NotesList(title: "주석", notes: notes, emptyHint: emptyHint, bookID: bookID,
                           chapter: chapter,
                           searchQuery: searchQuery,
                           selectedAnnotationNumber: selectedAnnotationNumber,
                           editionID: editionID)
+                    .environment(\.openURL, openURL)
             }
         }
     }
