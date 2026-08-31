@@ -445,7 +445,9 @@ struct MarkerNoteSheet: View {
             if let b = q("b"), let cs = q("c"), let c = Int(cs), let n = q("n"),
                let noteText = knb.notes(edition: "knbnotes", bookID: b, chapter: c)
                 .first(where: { $0.n == n })?.text {
-                noteTarget = MarkerNoteTarget(n: n, text: noteText, bookID: b, chapter: c)
+                DispatchQueue.main.async {
+                    noteTarget = MarkerNoteTarget(n: n, text: noteText, bookID: b, chapter: c)
+                }
                 return .handled
             }
         }
