@@ -571,27 +571,15 @@ struct AnnotationsPane: View {
     }
 
     var body: some View {
-        if wide {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    inner
-                        .padding(.horizontal, 22).padding(.vertical, 24)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .background(settings.theme.background)
-                .onChange(of: selectedAnnotationNumber) { _, newNumber in
-                    if let number = newNumber {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            withAnimation {
-                                proxy.scrollTo("annotation-\(number)", anchor: .top)
-                            }
-                        }
+        Group {
+            if wide {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        inner
+                            .padding(.horizontal, 22).padding(.vertical, 24)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                }
-            }
-        } else {
-            ScrollViewReader { proxy in
-                inner
+                    .background(settings.theme.background)
                     .onChange(of: selectedAnnotationNumber) { _, newNumber in
                         if let number = newNumber {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -601,8 +589,23 @@ struct AnnotationsPane: View {
                             }
                         }
                     }
+                }
+            } else {
+                ScrollViewReader { proxy in
+                    inner
+                        .onChange(of: selectedAnnotationNumber) { _, newNumber in
+                            if let number = newNumber {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    withAnimation {
+                                        proxy.scrollTo("annotation-\(number)", anchor: .top)
+                                    }
+                                }
+                            }
+                        }
+                }
             }
         }
+        .environment(\.openURL, openURL)
     }
 }
 
