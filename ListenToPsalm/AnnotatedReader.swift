@@ -265,6 +265,13 @@ struct AnnotatedReader: View {
     // MARK: 본문 | 주석
 
     private var content: some View {
+        // 책 미스매치 감지: 캐시된 책이 현재 책과 다르면 강제 업데이트
+        if cachedTitleMapBookID != book.id {
+            DispatchQueue.main.async {
+                updateTitleMapCacheForBook(book)
+            }
+        }
+
         let verses = chapter > 0 ? store.verses(edition: edition, book: book, chapter: chapter) : []
         let ch = max(chapter, 1)
         let notes = knb.notes(edition: editionID, bookID: book.id, chapter: ch)
