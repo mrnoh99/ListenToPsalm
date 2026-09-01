@@ -94,9 +94,9 @@ struct AnnotatedReader: View {
             }
             .fullScreenCover(isPresented: $showChapterPicker) {
                 ChapterPickerView(book: book, current: max(chapter, 1)) { picked in
-                    showChapterPicker = false
-                    DispatchQueue.main.async {
-                        setChapter(picked)
+                    setChapter(picked)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        showChapterPicker = false
                     }
                 }
             }
