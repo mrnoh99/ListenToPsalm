@@ -46,6 +46,8 @@ struct AnnotatedReader: View {
     /// 제목 맵 캐시
     @State private var cachedTitleMap: [String: String] = [:]
     @State private var cachedTitleMapChapter: Int = -1
+    @State private var cachedTitleMapBookID: String = ""
+    @State private var cachedTitleMapEditionID: String = ""
     /// 부모(ReaderView 등)가 설치한 각주 마커 처리 액션에 위임하기 위해 보관
     @Environment(\.openURL) private var parentOpenURL
 
@@ -84,6 +86,7 @@ struct AnnotatedReader: View {
 
                 // 책 변경 시 캐시를 강제로 초기화 (동기 처리)
                 cachedTitleMapChapter = -1
+                cachedTitleMapBookID = ""
 
                 // 장이 새 책에서 유효하지 않으면 초기화
                 let newBook = Bible.book(newBookID) ?? Bible.books[0]
@@ -92,6 +95,8 @@ struct AnnotatedReader: View {
                 }
 
                 previousBookID = newBookID
+                // 캐시 업데이트 시 새 bookID를 직접 사용하여 바인딩 지연 회피
+                updateTitleMapCacheForBook(newBook)
             }
             .onChange(of: chapter) { _, new in
                 guard new > 0 else { return }
@@ -369,6 +374,34 @@ struct AnnotatedReader: View {
         }
 
         return titleMap
+    }
+
+    private func getTitleMapForBook(_ book: BibleBook) -> [String: String] {
+        let ch = max(chapter, 1)
+
+        var titleMap: [String: String] = [:]
+
+        // JSON headings 필드에서 로드
+        let storeTitle = store.titles(edition: edition, book: book, chapter: ch)
+        for title in storeTitle {
+            titleMap[title.verse] = title.text
+        }
+
+        return titleMap
+    }
+
+    private func updateTitleMapCacheForBook(_ book: BibleBook) {
+        guard chapter > 0 else {
+            cachedTitleMap = [:]
+            return
+        }
+        if cachedTitleMapChapter == chapter && cachedTitleMapEditionID == editionID && cachedTitleMapBookID == book.id {
+            return
+        }
+        cachedTitleMapChapter = chapter
+        cachedTitleMapEditionID = editionID
+        cachedTitleMapBookID = book.id
+        cachedTitleMap = getTitleMapForBook(book)
     }
 
     private var chapterHeader: some View {
