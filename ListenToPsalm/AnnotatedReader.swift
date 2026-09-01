@@ -682,6 +682,56 @@ struct NotesList: View {
         }
     }
 
+    private func processNoteText(_ text: String) -> String {
+        // 마크다운 링크를 정규화 전에 추출하여 보존
+        let (textWithoutLinks, markdownLinks) = extractMarkdownLinks(text)
+
+        // 정규화 처리
+        let normalizedText = ScriptureRefNormalizer.normalize(textWithoutLinks, currentBookID: bookID, chapter: chapter)
+        let markedText = ScriptureRefNormalizer.addVerseMarkers(normalizedText)
+
+        // 마크다운 링크 다시 삽입
+        return reinsertMarkdownLinks(markedText, links: markdownLinks)
+    }
+
+    /// 마크다운 링크를 추출하고 텍스트에서 제거한다.
+    private func extractMarkdownLinks(_ text: String) -> (String, [(text: String, url: String, placeholder: String)]) {
+        let pattern = "\\[([^\\]]+)\\]\\(([^)]+)\\)"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return (text, [])
+        }
+
+        let ns = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+
+        var links: [(text: String, url: String, placeholder: String)] = []
+        var result = NSMutableString(string: text)
+
+        // 역순으로 처리하여 위치 변화 방지
+        for match in matches.reversed() {
+            let fullRange = match.range
+            let textRange = match.range(at: 1)
+            let urlRange = match.range(at: 2)
+            let linkText = ns.substring(with: textRange)
+            let urlString = ns.substring(with: urlRange)
+            let placeholder = "📎LINK_\(links.count)📎"
+
+            links.insert((text: linkText, url: urlString, placeholder: placeholder), at: 0)
+            result.replaceCharacters(in: fullRange, with: placeholder)
+        }
+
+        return (result as String, links)
+    }
+
+    /// 추출했던 마크다운 링크를 다시 텍스트에 삽입한다.
+    private func reinsertMarkdownLinks(_ text: String, links: [(text: String, url: String, placeholder: String)]) -> String {
+        var result = text
+        for link in links {
+            result = result.replacingOccurrences(of: link.placeholder, with: "[\(link.text)](\(link.url))")
+        }
+        return result
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             if !title.isEmpty {
@@ -701,8 +751,7 @@ struct NotesList: View {
                             .foregroundStyle(Color.accentColor)
                             .frame(minWidth: settings.fontSize * 1.3, alignment: .trailing)
                         // 단어 선택(네이티브)과 성경 인용 링크 탭을 함께 지원.
-                        let normalizedText = ScriptureRefNormalizer.normalize(note.text, currentBookID: bookID, chapter: chapter)
-                        let textWithMarkers = ScriptureRefNormalizer.addVerseMarkers(normalizedText)
+                        let textWithMarkers = processNoteText(note.text)
                         SelectableNoteText(text: textWithMarkers, currentBook: bookID, chapter: chapter,
                                            font: noteUIFont,
                                            color: UIColor(settings.theme.text),
