@@ -105,6 +105,7 @@ struct AnnotatedReader: View {
                     scrollTarget = 1
                 }
                 readingState.savePosition(edition: edition, book: book, chapter: new)
+                updateTitleMapCacheForBook(book)
             }
             .onChange(of: navigation.pendingChapter) { _, _ in applyPending() }
             .sheet(isPresented: $showBookPicker) {
