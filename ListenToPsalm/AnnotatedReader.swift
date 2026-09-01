@@ -96,7 +96,8 @@ struct AnnotatedReader: View {
 
                 previousBookID = newBookID
                 // 캐시 업데이트 시 새 bookID를 직접 사용하여 바인딩 지연 회피
-                updateTitleMapCacheForBook(newBook)
+                // 강제 업데이트로 책 선택 시 즉시 내용 변경
+                updateTitleMapCacheForBook(newBook, forcing: true)
             }
             .onChange(of: chapter) { _, new in
                 guard new > 0 else { return }
@@ -391,12 +392,12 @@ struct AnnotatedReader: View {
         return titleMap
     }
 
-    private func updateTitleMapCacheForBook(_ book: BibleBook) {
+    private func updateTitleMapCacheForBook(_ book: BibleBook, forcing: Bool = false) {
         guard chapter > 0 else {
             cachedTitleMap = [:]
             return
         }
-        if cachedTitleMapChapter == chapter && cachedTitleMapEditionID == editionID && cachedTitleMapBookID == book.id {
+        if !forcing && cachedTitleMapChapter == chapter && cachedTitleMapEditionID == editionID && cachedTitleMapBookID == book.id {
             return
         }
         cachedTitleMapChapter = chapter
