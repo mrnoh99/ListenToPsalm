@@ -663,6 +663,9 @@ struct NotesList: View {
     @Environment(ReaderSettings.self) private var settings
     @Environment(\.openURL) private var openURL
 
+    /// 처리된 주석 텍스트 캐시 (성능 최적화)
+    @State private var processedNotesCache: [String: String] = [:]
+
     private var edition: Edition { Editions.edition(editionID) ?? Editions.all[0] }
 
     private var noteUIFont: UIFont {
@@ -750,9 +753,9 @@ struct NotesList: View {
                             .font(settings.fontChoice.font(size: settings.fontSize * 0.72, bold: true))
                             .foregroundStyle(Color.accentColor)
                             .frame(minWidth: settings.fontSize * 1.3, alignment: .trailing)
-                        // 단어 선택(네이티브)과 성경 인용 링크 탭을 함께 지원.
-                        let textWithMarkers = processNoteText(note.text)
-                        SelectableNoteText(text: textWithMarkers, currentBook: bookID, chapter: chapter,
+                        // 캐시에서 이미 처리된 텍스트를 사용 (성능 개선)
+                        let processedText = processedNotesCache[note.n] ?? processNoteText(note.text)
+                        SelectableNoteText(text: processedText, currentBook: bookID, chapter: chapter,
                                            font: noteUIFont,
                                            color: UIColor(settings.theme.text),
                                            linkColor: UIColor(Color.accentColor),
@@ -765,6 +768,68 @@ struct NotesList: View {
                 }
             }
         }
+        .onAppear {
+            updateProcessedNotesCacheAsync()
+        }
+        .onChange(of: notes) { _, _ in
+            updateProcessedNotesCacheAsync()
+        }
+    }
+
+    /// 백그라운드에서 주석 텍스트를 처리하여 UI 블로킹 방지
+    private func updateProcessedNotesCacheAsync() {
+        Task.detached(priority: .userInitiated) { [notes, bookID, chapter] in
+            var cache: [String: String] = [:]
+            for note in notes {
+                cache[note.n] = Self.processNoteTextStatic(note.text, bookID: bookID, chapter: chapter)
+            }
+            await MainActor.run {
+                self.processedNotesCache = cache
+            }
+        }
+    }
+
+    /// 정적 메서드로 작성하여 Task.detached에서 사용 가능
+    private static func processNoteTextStatic(_ text: String, bookID: String, chapter: Int) -> String {
+        let (textWithoutLinks, markdownLinks) = extractMarkdownLinksStatic(text)
+        let normalizedText = ScriptureRefNormalizer.normalize(textWithoutLinks, currentBookID: bookID, chapter: chapter)
+        let markedText = ScriptureRefNormalizer.addVerseMarkers(normalizedText)
+        return reinsertMarkdownLinksStatic(markedText, links: markdownLinks)
+    }
+
+    private static func extractMarkdownLinksStatic(_ text: String) -> (String, [(text: String, url: String, placeholder: String)]) {
+        let pattern = "\\[([^\\]]+)\\]\\(([^)]+)\\)"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return (text, [])
+        }
+
+        let ns = text as NSString
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: ns.length))
+
+        var links: [(text: String, url: String, placeholder: String)] = []
+        var result = NSMutableString(string: text)
+
+        for match in matches.reversed() {
+            let fullRange = match.range
+            let textRange = match.range(at: 1)
+            let urlRange = match.range(at: 2)
+            let linkText = ns.substring(with: textRange)
+            let urlString = ns.substring(with: urlRange)
+            let placeholder = "📎LINK_\(links.count)📎"
+
+            links.insert((text: linkText, url: urlString, placeholder: placeholder), at: 0)
+            result.replaceCharacters(in: fullRange, with: placeholder)
+        }
+
+        return (result as String, links)
+    }
+
+    private static func reinsertMarkdownLinksStatic(_ text: String, links: [(text: String, url: String, placeholder: String)]) -> String {
+        var result = text
+        for link in links {
+            result = result.replacingOccurrences(of: link.placeholder, with: "[\(link.text)](\(link.url))")
+        }
+        return result
     }
 }
 
