@@ -106,10 +106,8 @@ struct AnnotatedReader: View {
             }
             .fullScreenCover(isPresented: $showChapterPicker) {
                 ChapterPickerView(book: book, current: max(chapter, 1)) { picked in
-                    if picked != chapter {
-                        setChapter(picked)
-                        scrollTarget = 1
-                    }
+                    setChapter(picked)
+                    scrollTarget = 1
                     showChapterPicker = false
                 }
             }
