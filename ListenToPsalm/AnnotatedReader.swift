@@ -81,18 +81,21 @@ struct AnnotatedReader: View {
                 showChapterPicker = false
                 showBookPicker = false
                 scrollTarget = nil
-                // 책 변경 시 chapter 캐시를 강제로 초기화
-                cachedTitleMapChapter = -1
-
-                // 장이 새 책에서 유효하지 않으면 초기화
-                let newBook = Bible.book(newBookID) ?? Bible.books[0]
-                if chapter > newBook.chapterCount {
-                    setChapter(readingState.lastChapter(edition: edition, book: newBook))
-                } else if chapter == 0 {
-                    setChapter(readingState.lastChapter(edition: edition, book: newBook))
-                }
 
                 previousBookID = newBookID
+
+                // 책 변경 시 장과 캐시를 강제로 초기화
+                // 이는 다음 업데이트 사이클에서 처리되어야 함
+                DispatchQueue.main.async {
+                    cachedTitleMapChapter = -1
+
+                    let newBook = Bible.book(newBookID) ?? Bible.books[0]
+                    if chapter > newBook.chapterCount {
+                        setChapter(readingState.lastChapter(edition: edition, book: newBook))
+                    } else if chapter == 0 {
+                        setChapter(readingState.lastChapter(edition: edition, book: newBook))
+                    }
+                }
             }
             .onChange(of: chapter) { _, new in
                 guard new > 0 else { return }
